@@ -272,38 +272,27 @@ namespace TestAPI
             {
                 Console.WriteLine($"Processing XML: {Path.GetFileName(xmlPath)}");
 
-                var fileInfo = new FileInfo(xmlPath);
-                if (fileInfo.Length == 0)
-                {
-                    Console.WriteLine("Skipping empty file");
-                    return;
-                }
+                string fileName = Path.GetFileNameWithoutExtension(xmlPath);
+
+                string[] parts = fileName.Split('_');
+
+                string tableName = parts.Length > 2
+                    ? string.Join("_", parts.Take(parts.Length - 2))
+                    : fileName;
+
+                Console.WriteLine($"Using table name: {tableName}");
 
                 XDocument doc = XDocument.Load(xmlPath);
                 XElement root = doc.Root;
 
-                if (root == null || !root.HasElements)
-                {
-                    Console.WriteLine("Skipping empty XML");
-                    return;
-                }
-
-                string tableName = root.Name.LocalName;
-                Console.WriteLine($"Root element: {tableName}");
-
                 var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (XElement element in root.Elements().Take(100))
+
+                if (root.Elements().FirstOrDefault() is XElement firstElement)
                 {
-                    foreach (XAttribute attr in element.Attributes())
+                    foreach (XAttribute attr in firstElement.Attributes())
                     {
                         columns.Add(attr.Name.LocalName);
                     }
-                }
-
-                if (columns.Count == 0)
-                {
-                    Console.WriteLine("No columns found in XML");
-                    return;
                 }
 
                 Console.WriteLine($"Found {columns.Count} columns: {string.Join(", ", columns)}");
@@ -311,6 +300,8 @@ namespace TestAPI
                 await CreateTable(tableName, columns);
 
                 await BulkInsertData(tableName, columns, root.Elements());
+
+                Console.WriteLine($"Successfully processed {root.Elements().Count()} records");
             }
             catch (Exception ex)
             {
