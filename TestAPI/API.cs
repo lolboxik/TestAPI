@@ -363,6 +363,12 @@ namespace TestAPI
         {
             try
             {
+                if (columns == null || columns.Count == 0)
+                {
+                    Console.WriteLine($"Skipping {tableName} - no columns found");
+                    return;
+                }
+
                 using (var conn = new NpgsqlConnection(_currentConnectionString))
                 {
                     await conn.OpenAsync();
